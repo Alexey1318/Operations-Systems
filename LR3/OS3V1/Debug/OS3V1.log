@@ -1,0 +1,7 @@
+﻿  MyForm.cpp
+D:\DIIT\OS\Lr3\OS3V1t\OS3V1\OS3V1\MyForm.h(296,13): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+D:\DIIT\OS\Lr3\OS3V1t\OS3V1\OS3V1\MyForm.cpp(7,32): warning C4829: Possibly incorrect parameters to function main. Consider 'int main(Platform::Array<Platform::String^>^ argv)'
+  .NETFramework,Version=v4.5.2.AssemblyAttributes.cpp
+  Generating Code...
+  MyForm.obj : MSIL module encountered; incremental linking is disabled for MSIL; performing full link
+  OS3V1.vcxproj -> D:\DIIT\OS\Lr3\OS3V1t\OS3V1\Debug\OS3V1.exe

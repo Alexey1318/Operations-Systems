@@ -1,0 +1,2 @@
+D:\github\Operations-Systems\LR1\Debug\LR1.exe
+D:\github\Operations-Systems\LR1\Debug\LR1.pdb

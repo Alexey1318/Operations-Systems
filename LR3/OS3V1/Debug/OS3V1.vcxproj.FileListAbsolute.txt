@@ -1,0 +1,3 @@
+D:\DIIT\OS\Lr3\OS3V1t\OS3V1\OS3V1\Debug\OS3V1.vcxprojAssemblyReference.cache
+D:\DIIT\OS\Lr3\OS3V1t\OS3V1\OS3V1\Debug\OS3V1.MyForm.resources
+D:\DIIT\OS\Lr3\OS3V1t\OS3V1\OS3V1\Debug\OS3V1.vcxproj.GenerateResource.cache
