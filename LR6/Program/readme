@@ -1,0 +1,12 @@
+# to create DLL and run a program with dynamic link
+1. see code from UnitEntryPoint.cpp then launch next commands:
+# create some obj files
+2. g++ -c [cpp_module_of_dll].cpp
+3. g++ -c UnitEntryPoint.cpp
+# build dll from these obj files
+4. g++ -o [dll_name].dll UnitEntryPoint.o  [cpp_module_of_dll].o 
+# compile your program
+5. g++ -o main main.cpp
+# run it
+6. ./main.exe [par1] [par2]
+
