@@ -20,7 +20,7 @@
     </Library>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source.cpp">
+    <ClCompile Include="lib_user_fn.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
