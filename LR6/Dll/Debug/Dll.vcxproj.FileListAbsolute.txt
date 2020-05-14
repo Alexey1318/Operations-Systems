@@ -1,4 +1,0 @@
-D:\github\Operations-Systems\LR6\Dll\Debug\Dll.dll
-D:\github\Operations-Systems\LR6\Dll\Debug\Dll.pdb
-D:\Dll\Debug\Dll.dll
-D:\Dll\Debug\Dll.pdb

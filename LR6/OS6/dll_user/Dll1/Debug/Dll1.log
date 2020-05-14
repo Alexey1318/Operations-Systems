@@ -1,0 +1,6 @@
+﻿  pch.cpp
+  dllmain.cpp
+  DynamicLinkLibrary.cpp
+  Создание кода...
+     Создается библиотека D:\github\Operations-Systems\LR6\OS6\dll_user\Debug\DynamicLinkLibrary.lib и объект D:\github\Operations-Systems\LR6\OS6\dll_user\Debug\DynamicLinkLibrary.exp
+  Dll1.vcxproj -> D:\github\Operations-Systems\LR6\OS6\dll_user\Debug\DynamicLinkLibrary.dll
