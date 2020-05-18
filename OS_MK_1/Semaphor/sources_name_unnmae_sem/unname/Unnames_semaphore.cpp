@@ -2,8 +2,10 @@
 #include <pthread.h> 
 #include <semaphore.h> 
 #include <unistd.h> 
-  
+#include <iostream>
+
 sem_t mutex; 
+std::string text;
   
 void* thread(void* arg){ 
 
@@ -11,12 +13,15 @@ void* thread(void* arg){
     sem_wait(&mutex); 
     printf("\nEntered..\n"); 
   
-    // do something - in example we just waiting 4 seconds
-    sleep(4); 
+    // do something 
+    text = (const char*)arg;
+    std::cout << text << std::endl;
       
     //signal 
     printf("\nJust Exiting...\n"); 
     sem_post(&mutex); 
+
+    return NULL;
 } 
   
   
@@ -29,12 +34,10 @@ int main(int argc, char*argv[]){
     pthread_t t1,t2; 
 
     // Create a new thread for task <void* thread(void* arg)>
-    pthread_create(&t1, NULL, thread, NULL); 
-
-    sleep(2); 
+    pthread_create(&t1, NULL, thread, (void*)"QWERTYUIOP"); 
 
     // Create a new thread for task <void* thread(void* arg)>
-    pthread_create(&t2, NULL, thread, NULL); 
+    pthread_create(&t2, NULL, thread, (void*)"asdfghjkl"); 
 
     // Waiting for the end of the first thread
     pthread_join(t1, NULL); 
