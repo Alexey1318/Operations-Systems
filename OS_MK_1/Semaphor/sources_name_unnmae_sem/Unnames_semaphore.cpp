@@ -5,8 +5,8 @@
   
 sem_t mutex; 
   
-void* thread(void* arg) 
-{ 
+void* thread(void* arg){ 
+
     //wait 
     sem_wait(&mutex); 
     printf("\nEntered..\n"); 
@@ -20,8 +20,8 @@ void* thread(void* arg)
 } 
   
   
-int main(int argc, char*argv[]) 
-{ 
+int main(int argc, char*argv[]){ 
+
     // Initialize an unnamed semaphore
     sem_init(&mutex, 0, 1); 
 
