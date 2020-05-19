@@ -1,0 +1,454 @@
+--------------- task1 -------------
+main.cpp:
+
+/* 
+ * Hаписати програму, яка створює дочірні процеси (системний виклик fork ()), 
+ * стежить за їх завершенням (сигнал SIGCHLD) 
+ * і кожен раз при створенні або завершенні дочірніх процесів 
+ * виводить їх поточну кількість на екран.
+ */
+
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+
+int count = 0;
+
+// Creating a signal handler
+void CatchSignal(int signum){
+    // In the handler we decrease the counter
+    --count;
+    printf("Parent pid=%d: after kill a child: process count = %d\n", getpid(), count);
+    exit(signum);
+}
+
+int main(int argc, const char** argv) {
+    
+    // Handler reference for signal type
+    signal(SIGCHLD, CatchSignal);
+
+    pid_t pid;
+    
+    for(int i = 0; i < atoi(argv[1]); ++i){
+        
+        // Creating a new process
+        pid = fork();
+        
+        if(pid == 0){
+            // Starting in the process of another application
+            execl("./child", NULL);
+        }
+
+        // In the parent process we increase the counter
+        ++count;
+        printf("Parent: pid=%d, child pid=%d\n", getpid(), pid);
+        printf("Parent pid=%d: after creating a new process: process count = %d\n", getpid(), count);   
+
+        sleep(3);
+    }
+
+    return 0;
+}
+
+child.cpp
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+
+int main(int argc, const char** argv) {
+    printf("Child: parent pid=%d, pid=%d\n", getppid(), getpid());
+    kill(getppid(), SIGCHLD);
+    return 0;
+}
+
+Makefile
+all:
+	clear
+	g++ -o main main.cpp
+	g++ -o child child.cpp
+	./main 2
+
+--------------- task2 -------------
+main.cpp
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <iostream>
+
+int main(int argc, char* argv[]) {
+    
+    // For pull info about queue
+    struct msqid_ds qstatus;
+    
+    // Define variables for work with queue
+    key_t key = atoi(argv[1]);   
+    int msqid;
+
+    // Connect to the queue
+    msqid = msgget(key, IPC_CREAT);
+    if (msqid == -1) {
+        perror("serv::msgget");
+        return -1;
+    }
+
+    while(true){
+        // Get info and write it in object qstatus
+        if(msgctl(msqid, IPC_STAT, &qstatus) < 0){
+            perror("msgctl");
+            return -1;
+        }
+        printf("msqid: %d\tmessage(s) in queue: %d\ttime of last message:%s\n",
+         msqid, 
+         qstatus.msg_qnum, 
+         ctime(&(qstatus.msg_ctime)));
+        sleep(5);
+    }
+
+    return 0;
+}
+
+Makefile
+all:
+	g++ -o main main.cpp
+
+--------------- task3 -------------
+client_a.cpp
+#include "includes.h"
+#include <cstdlib>
+
+int main(int argc, const char** argv) {
+
+    using namespace std;
+    srand(time(NULL));
+
+    // Define variables for queue work
+    key_t key = atoi(argv[0]);
+    int msqid;
+    array_buf sabuf;
+
+    // Connect to the queue
+    if ((msqid = msgget(key, FLAG)) < 0) {
+        perror("client::msgget");
+        return -1;
+    }
+    std::cout << "Client #2 connected" << std::endl;
+
+    while(true){
+        // Send array
+        sabuf.mtype = 4;
+        cout << "Array: ";
+        for(int i = 0; i < aln; ++i){ 
+            sabuf.array[i] = rand() % 100;
+        }   
+        cout << endl;
+        Push::Send(sabuf, msqid);
+        // Got it
+        Pop::Get(sabuf, msqid, 3, 0);
+        // Show it
+        Print::Show(sabuf);
+
+        sleep(3);
+    }
+    return 0;
+}
+
+client_m.cpp
+#include "includes.h"
+
+int main(int argc, const char** argv) {
+
+    // Define variables for queue work
+    key_t key = atoi(argv[0]);
+    int msqid;
+    message_buf smbuf;
+
+    // Connect to the queue
+    if ((msqid = msgget(key, FLAG)) < 0) {
+        perror("client::msgget");
+        return -1;
+    }
+    std::cout << "Client #1 connected" << std::endl;
+    while(true){
+        // Send message to the server
+        smbuf.mtype = 2;
+        strcpy(smbuf.mes, "request");
+        Push::Send(smbuf, msqid);
+        // Get response
+        Pop::Get(smbuf, msqid, 1, 0);
+        // Show it
+        Print::Show(smbuf);
+
+        sleep(3);
+    }
+    return 0;
+}
+
+client_s.cpp
+#include "includes.h"
+
+int main(int argc, const char** argv) {
+
+    using namespace std;
+    srand(time(NULL));
+
+    // Define variables for queue work
+    key_t key = atoi(argv[0]);
+    int msqid;
+    stat_info sibuf;
+
+    // Connect to the queue
+    if ((msqid = msgget(key, FLAG)) < 0) {
+        perror("client::msgget");
+        return -1;
+    }
+    std::cout << "Client #3 connected" << std::endl;
+    while (true){
+        // Send request
+        sibuf.mtype = 6;
+        Push::Send(sibuf, msqid);
+        // Got it
+        Pop::Get(sibuf, msqid, 5, 0);
+        // Show info
+        Print::Show(sibuf);
+
+        sleep(3);
+    }
+    return 0;
+}
+
+includes.h
+#include <iostream>
+#include <signal.h>
+#include <sys/msg.h>
+#include <signal.h>
+#include <cstring>
+#include <unistd.h>
+
+#define mln 1024
+#define aln 10
+
+#define abufsize aln*sizeof(int)
+#define mbufsize mln
+#define statsize mln + 3*sizeof(int)
+
+#define FLAG 0666|IPC_CREAT
+
+struct message_buf {
+    long mtype;
+    char mes[mln];
+};
+
+struct array_buf {
+    long mtype;
+    int array[aln];
+};
+
+struct stat_info{
+    long mtype;
+    int msqid;
+    int user_id;
+    int mes_count;
+    char time_last_request[mln];
+};
+
+namespace Print{
+
+    void Show(message_buf &m){
+
+        using namespace std;
+
+        cout << "type: " << m.mtype << endl;
+        cout << "mes: " << m.mes << endl;    
+        cout << endl;
+    }
+
+    void Show(array_buf &a){
+        
+        using namespace std;
+
+        cout << "type: " << a.mtype << endl;
+        cout << "array: ";
+        for(int i = 0; i < aln; ++i){
+            cout << a.array[i] << "\t";
+        }
+        cout << endl;
+    }
+
+    void Show(stat_info &s){
+
+        using namespace std;
+
+        cout << "msqid: " << s.msqid << endl;
+        cout << "user id: " << s.user_id << endl;
+        cout << "message(s) in queue: " << s.mes_count << endl;
+        cout << "time of last message: " << s.time_last_request << endl;
+    }
+}
+
+namespace Push{
+    int Send(message_buf &m, int id){
+
+        if(msgsnd(id, &m, mbufsize, IPC_NOWAIT) < 0) { 
+            return -1;
+        } 
+        return 0;
+    }
+
+    int Send(array_buf &a, int id){
+
+        if(msgsnd(id, &a, abufsize, IPC_NOWAIT) < 0) {  
+            return -1;
+        } 
+        return 0;
+    }
+
+    int Send(stat_info &s, int id){
+        
+        if(msgsnd(id, &s, statsize, IPC_NOWAIT) < 0) {   
+            return -1;
+        } 
+        return 0;
+    }
+}
+
+namespace Pop{
+    int Get(message_buf& m, int id, int type, int msgflg){
+
+        if (msgrcv(id, &m, mbufsize, type, msgflg) < 0) {
+            return -1;
+        }
+        return 0;
+    }
+
+    int Get(array_buf& a, int id, int type, int msgflg){
+
+        if (msgrcv(id, &a, abufsize, type, msgflg) < 0) {
+            return -1;
+        }
+        return 0;
+    }
+
+    int Get(stat_info& s, int id, int type, int msgflg){
+       
+        if (msgrcv(id, &s, statsize, type, msgflg) < 0) {
+            return -1;
+        }
+        return 0;
+    }
+}
+
+server.cpp
+/* 
+ * Написати програму, яка створює дочірні потоки, 
+ * які в паралельному режимі відправляють батьківському потоку повідомлення в чергу повідомлень 
+ * і отримують свою персональну відповідь. 
+ * Використовувати загальну на всі потоки чергу повідомлень.
+ */
+
+#include "includes.h"
+#include <vector>
+#include <algorithm>
+
+int main(int argc, const char** argv) {
+    
+    int pid;
+
+    // Define variables for work with queue
+    key_t key = atoi(argv[1]);   
+    int msqid; 
+
+    // For pull info about queue
+    struct msqid_ds qstatus;
+
+    // First thread send ang give text message
+    message_buf rmbuf;
+    // Second thread send array and give sorted array
+    array_buf rabuf;    
+    //Third thread send request for issuing info about queue and got it
+    stat_info ribuf;
+
+    // Create and run 3 threads
+    if((pid = fork()) == 0){
+        execl("./client_m", argv[1], NULL);
+    }
+    else if((pid = fork()) == 0){
+        execl("./client_a", argv[1], NULL);
+    }
+    else if((pid = fork()) == 0){
+        execl("./client_s", argv[1], NULL);
+    }
+    else{
+        // Connect to the queue
+        if ((msqid = msgget(key, FLAG)) < 0) {
+            perror("serv::msgget");
+            return -1;
+        }
+        std::cout << "Server connected to queue" << std::endl;
+
+        while(true){
+            // Get message from queue
+            if(Pop::Get(rmbuf, msqid, 2, IPC_NOWAIT) == 0){
+                Print::Show(rmbuf);
+                // Write answer 
+                rmbuf.mtype = 1;
+                strcpy(rmbuf.mes, "response");
+                // Send it
+                Push::Send(rmbuf, msqid);
+            }
+
+            // Get array
+            if(Pop::Get(rabuf, msqid, 4, IPC_NOWAIT) == 0){
+                Print::Show(rabuf);
+                // Sort array
+                rabuf.mtype = 3;
+                {
+                    std::vector<int> array(rabuf.array, rabuf.array + aln);
+                    std::sort(array.begin(), array.end());
+                    for(int i = 0; i < aln; ++i){
+                        rabuf.array[i] = array[i];
+                    }
+                }
+                // Send it
+                Push::Send(rabuf, msqid);
+            }
+
+            // Get request 
+            if(Pop::Get(ribuf, msqid, 6, IPC_NOWAIT) == 0){
+            
+                if(!(msgctl(msqid, IPC_STAT, &qstatus) < 0)){
+
+                    ribuf.mtype = 5;
+
+                    // Loot statistics
+                    ribuf.msqid = msqid;
+                    ribuf.user_id = qstatus.msg_perm.cuid;
+                    ribuf.mes_count = qstatus.msg_qnum;
+                    strcpy(ribuf.time_last_request, ctime(& (qstatus.msg_stime)));
+
+                    // Send it
+                    Push::Send(ribuf, msqid);
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+Makefile
+# use makefile for simple compile program 
+all:
+	# clear console
+	clear
+	# compile server part
+	g++ -o server server.cpp
+	# compile threads applications
+	g++ -o client_m client_m.cpp
+	g++ -o client_a client_a.cpp
+	g++ -o client_s client_s.cpp
+	#run server with queue key in argument
+	./server 1
+
