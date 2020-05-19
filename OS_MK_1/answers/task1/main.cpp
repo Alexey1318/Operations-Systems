@@ -12,31 +12,37 @@
 
 int count = 0;
 
+// Creating a signal handler
+void CatchSignal(int signum){
+    // In the handler we decrease the counter
+    --count;
+    printf("Parent pid=%d: after kill a child: process count = %d\n", getpid(), count);
+    exit(signum);
+}
+
 int main(int argc, const char** argv) {
     
-    int pid;
+    // Handler reference for signal type
+    signal(SIGCHLD, CatchSignal);
+
+    pid_t pid;
     
     for(int i = 0; i < atoi(argv[1]); ++i){
         
+        // Creating a new process
         pid = fork();
         
-        switch(pid){
-
-            case 0:
-                printf("Child: parent pid=%d, pid=%d\n", getppid(), getpid());
-                kill(getppid(), SIGCHLD);
-            break;
-
-            default:
-                ++count;
-                printf("Parent: pid=%d, child pid=%d\n", getpid(), pid);
-                printf("Parent pid=%d: after creating a new process: process count = %d\n", getpid(), count);
-                
-                waitpid(pid, NULL, 0);
-                --count;
-                printf("Parent pid=%d: after kill a child: process count = %d\n", getpid(), count);
-            break;
+        if(pid == 0){
+            // Starting in the process of another application
+            execl("./child", NULL);
         }
+
+        // In the parent process we increase the counter
+        ++count;
+        printf("Parent: pid=%d, child pid=%d\n", getpid(), pid);
+        printf("Parent pid=%d: after creating a new process: process count = %d\n", getpid(), count);   
+
+        sleep(3);
     }
 
     return 0;

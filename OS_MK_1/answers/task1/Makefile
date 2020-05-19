@@ -1,4 +1,5 @@
 all:
 	clear
 	g++ -o main main.cpp
-	./main 3
+	g++ -o child child.cpp
+	./main 2
