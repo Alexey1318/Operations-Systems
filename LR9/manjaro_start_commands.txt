@@ -1,5 +1,0 @@
-sudo pacman -S code
-sudo pacman -S gcc
-sudo pacman -S dotnet-sdk
-sudo pacman -S jre-openjdk
-sudo pacman -S telegram-desktop

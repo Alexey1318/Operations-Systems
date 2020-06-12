@@ -26,17 +26,18 @@ void ShowFilesInDirectory(const char* dirName){
         if(dirInfo->d_type == DT_DIR){
             if (strcmp(dirInfo->d_name, ".") == 0 || strcmp(dirInfo->d_name, "..") == 0){
 				continue;
-            }
-            printf("[%s]\n",dirInfo->d_name);
+            }            
+            printf("\n[%s]\n",dirInfo->d_name);
             ShowFilesInDirectory(dirInfo->d_name);
         } 
+
         // Если файл - показать данные о нем
         else {
             stat(dirInfo->d_name, &fileBuf);
-            printf("%-14.*s\t%d\n", dirInfo->d_reclen, dirInfo->d_name, fileBuf.st_size);
+            printf("[%s]%-14.*s\t%d\n", dirName, dirInfo->d_reclen, dirInfo->d_name, fileBuf.st_size);
         }
     }
-
+    printf("\n");
     closedir(refDir);   
 } 
 
