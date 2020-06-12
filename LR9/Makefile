@@ -1,0 +1,3 @@
+all:
+	clear
+	g++ -o main main.cpp
