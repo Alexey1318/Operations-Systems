@@ -1,4 +1,4 @@
 all:
 	clear
 	g++ -o main main.cpp
-	./main .
+	./main /home/alexey/DIIT/repos/Operations-Systems/LR9

@@ -5,7 +5,9 @@
 #include <cstring>
 
 // Рекурсивный обход по файловому дереву
-void ShowFilesInDirectory(const char* dirName){
+void ShowFilesInDirectory(char* dirName){
+
+    printf("%s\n", dirName);
 
     DIR* refDir;
     
@@ -28,13 +30,17 @@ void ShowFilesInDirectory(const char* dirName){
 				continue;
             }            
             printf("\n[%s]\n",dirInfo->d_name);
-            ShowFilesInDirectory(dirInfo->d_name);
+            strcat(dirName, "/");
+            strcat(dirName, dirInfo->d_name);
+            ShowFilesInDirectory(dirName);
         } 
 
         // Если файл - показать данные о нем
         else {
             stat(dirInfo->d_name, &fileBuf);
-            printf("[%s]%-14.*s\t%d\n", dirName, dirInfo->d_reclen, dirInfo->d_name, fileBuf.st_size);
+            if(!(fileBuf.st_mode & (S_IXGRP|S_IXUSR|S_IXOTH))){
+                printf("[%s]%-14.*s\t%d\n", dirName, dirInfo->d_reclen, dirInfo->d_name, fileBuf.st_size);
+            }
         }
     }
     printf("\n");
@@ -42,6 +48,8 @@ void ShowFilesInDirectory(const char* dirName){
 } 
 
 int main(int argc, const char** argv) {
-    ShowFilesInDirectory(argv[1]);
+    char path[256];
+    strcpy(path, argv[1]);
+    ShowFilesInDirectory(path);
     return 0;
 }
