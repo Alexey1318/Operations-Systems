@@ -1,0 +1,4 @@
+all:
+	clear
+	g++ -o TCP_Client TCP_Client.cpp
+	./TCP_Client

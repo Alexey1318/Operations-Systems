@@ -1,0 +1,406 @@
+------------------------------- TASK-1 -------------------------------
+
+// Написати програму, яка відміняє дію термінальних сигналів для термінала 
+// та дозволяє перевірити роботу режимів введення символів  з  відлунням та без.
+
+#include <iostream>
+#include <unistd.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <termios.h>
+
+struct termios saved_attributes;
+struct termios term;
+
+// After program is interrupt, make terminal in canonical mode back
+void ResetInputMode(){    
+    tcsetattr(0, TCSANOW, &saved_attributes);
+}
+
+void NonCanonical(bool echo){
+    if(!isatty(0)){
+        perror("isatty()");
+        exit(1);
+    }
+    tcgetattr(0, &saved_attributes);
+    term = saved_attributes;
+
+	// Enter to non-canonical mode for off signals
+    term.c_lflag &= ~(ICANON);
+
+	// If echo-flag is true - off it
+	if(echo){
+    	term.c_lflag &= ~(ECHO);
+	}
+    term.c_cc[VMIN] = 0;
+    term.c_cc[VTIME] = 0;
+    tcsetattr(0, TCSAFLUSH, &term);
+}
+
+// For correct exit from program
+void ExitProgram(int sig){
+    exit(0);
+}
+
+int main(int argc, char*argv[]){
+
+	char c;
+	bool echo_flag;
+	std::cout << "Enter \"1\" for Non-echo mode or \"2\" for Echo mode: ";
+    std::cin >> c;
+	echo_flag = (c=='1')?true:false;
+	NonCanonical(echo_flag);
+    atexit(ResetInputMode);
+    signal(SIGINT,ExitProgram);
+    signal(SIGTERM,ExitProgram);
+    while(true)
+    {
+        read(0,&c,term.c_cc[VMIN]);
+        write(1,&c,term.c_cc[VMIN]);
+    }
+    return 0;
+}
+
+------------------------------- TASK-2 -------------------------------
+                            Server code:
+
+// Написати серверну програму, 
+// яка реєструється слухачем порту
+// та обробляє підключення в режимі «запит-відповідь» 
+// з використанням дочірніх процесів (створених за допомогою fork()).
+
+#include <iostream>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdlib.h>
+
+using namespace std;
+
+int main(int argc, const char** argv) {
+    
+    int count = 1;
+
+    // Create a socket
+    int listening = socket(AF_INET, SOCK_STREAM, 0);
+    if(listening == -1){
+        cerr << "Can't create socket!" << endl;
+        return -1;
+    }
+    cout << "Socket created" << endl;
+    
+    // Bind tho socket to an IP/port
+    sockaddr_in hint;
+    hint.sin_family = AF_INET;
+    hint.sin_port = htons(1235);
+    inet_pton(AF_INET, "0.0.0.0", &hint.sin_addr); 
+
+    if(bind(listening, (sockaddr*)&hint, sizeof(hint)) == -1){
+        cerr << "Can't bind to IP/port" << std::endl;
+        return -2;
+    }
+    cout << "Bind success" << endl;
+
+    // Mark the socket for listening in
+    if(listen(listening, SOMAXCONN) == -1){
+        cerr << "Can't listen!" << endl;
+        return -3;
+    }
+    cout << "Waiting for incoming connections..." << endl;
+
+    int c = sizeof(struct sockaddr_in);
+    pthread_t thread_id;
+    int client_socket;
+    sockaddr_in client;
+
+    while((client_socket = accept(listening, (sockaddr*)&client, (socklen_t*)&c))){
+
+        cout << "Client #" << count << " connected" << endl; 
+        ++count;
+
+        if(fork()){
+            execl("./task2client",  std::to_string(client_socket).c_str(), NULL);
+        }
+    }
+
+    if(client_socket < 0){
+        cerr <<  "Accept failed" << endl;
+        return -5;
+    }
+
+    close(listening);
+
+    return 0;
+}
+
+                            Code for work <fork()> with <execl()> call:
+#include <iostream>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <string.h>
+
+int main(int argc, char** argv) {
+
+    using namespace std;
+
+    cout << "debug message" << endl;
+
+    int clientSocket = atoi(argv[0]);
+    cout << clientSocket << endl;
+
+    // While receiving - display message, echo message
+    char buf[4096];
+    while(true){
+        
+        // Clear the buffer
+        memset(buf, 0, 4096);
+
+        // Wait for a message
+        int bytesRecv = recv(clientSocket, buf, 4096, 0);
+        if(bytesRecv == -1){
+            cerr << "There was a connection issue" << endl;
+            break;
+        }
+        if(bytesRecv == 0){
+            cout << "The client disconnected" << endl;
+            break;
+        }
+
+        // Display message
+        cout << "Received: " << string(buf, 0, bytesRecv) << endl;
+
+        // Enter lines of text
+        string userInput;
+        cout << "> ";
+        getline(cin, userInput);
+
+        // Resend message
+        send(clientSocket, userInput.c_str(), userInput.size() + 1, 0);
+    }
+
+    return 0;
+}
+
+                            Client example:
+#include <iostream>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <string>
+
+using namespace std;
+
+int main(int argc, const char** argv) {
+    
+    // Create socket
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    if(sock == -1){       
+        cerr << "Can't create socket!" << endl; 
+        return -1;
+    }
+    
+    // Create a hint structure for the server we're connecting with
+    int port = 1235;
+    string ipAddress = "127.0.0.1";
+
+    sockaddr_in hint;
+    hint.sin_family = AF_INET;
+    hint.sin_port = htons(port);
+    inet_pton(AF_INET, ipAddress.c_str(), &hint.sin_addr);
+
+    // Connect to the server on the socket
+    int connectRes = connect(sock, (sockaddr*)&hint, sizeof(hint));
+    if(connectRes == -1){
+        cerr << "Can't connect!" << endl;
+        return -2;
+    }
+
+    // While loop:
+    char buf[4096];
+    string userInput;
+
+    do{  
+        // Enter lines of text
+        cout << "> ";
+        getline(cin, userInput);
+
+        // Send to server
+        int sendRes = send(sock, userInput.c_str(), userInput.size() + 1, 0);
+        if(sendRes == -1){
+            cerr << "Couldn't send to server!" << endl;
+            continue;
+        }
+        
+        // Wait for response
+        memset(buf, 0, 4096);
+        int bytesReceived = recv(sock, buf, 4096, 0);
+        if(bytesReceived == -1){
+            cerr << "There was an error getting response from server" << endl;
+        } else{        
+            // Display response
+            cout << "SERVER> " << string(buf, bytesReceived) << endl;
+        }       
+
+    }while(true);
+
+    // Close the cosket
+    close(sock);
+
+    return 0;
+}
+
+------------------------------- TASK-3 -------------------------------
+
+
+// Написати серверну програму, 
+// яка обробляє паралельні підключення без багатозадачності 
+// з використанням мультиплексування (функція select()).
+
+#include <iostream>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <string.h>
+#include <stdlib.h>
+
+using namespace std;
+
+bool Check(int*arr, int size, fd_set &watchset){
+    for(int i = 0; i < size; ++i){
+        if(FD_ISSET(arr[i], &watchset)){
+            return true;
+        }
+    }
+    return false;
+}
+
+int main(int argc, const char** argv) {
+    
+    int count = 0;
+
+    int fds[10];
+    fd_set watchset; /* fds для чтения */
+	fd_set inset; /* обновляется select() */
+
+    // Create a socket
+    int listening = socket(AF_INET, SOCK_STREAM, 0);
+    if(listening == -1){
+        cerr << "Can't create socket!" << endl;
+        return -1;
+    }
+    cout << "Socket created" << endl;
+    
+    // Bind tho socket to an IP/port
+    sockaddr_in hint;
+    hint.sin_family = AF_INET;
+    hint.sin_port = htons(8888);
+    inet_pton(AF_INET, "0.0.0.0", &hint.sin_addr); 
+
+    if(bind(listening, (sockaddr*)&hint, sizeof(hint)) == -1){
+        cerr << "Can't bind to IP/port" << std::endl;
+        return -2;
+    }
+    cout << "Bind success" << endl;
+
+    // Mark the socket for listening in
+    if(listen(listening, SOMAXCONN) == -1){
+        cerr << "Can't listen!" << endl;
+        return -3;
+    }
+    cout << "Waiting for incoming connections..." << endl;
+
+    int c = sizeof(struct sockaddr_in);
+    pthread_t thread_id;
+    int client_socket;
+    sockaddr_in client;
+
+    char buf[4096];
+    char bufSocket[4096];
+	int maxfd;
+
+    while((client_socket = accept(listening, (sockaddr*)&client, (socklen_t*)&c))){
+
+        fds[count] = client_socket;
+        cout << "Client #" << ++count << " connected" << endl; 
+
+        /* начать чтение из дескрипторов */
+	    FD_ZERO(&watchset);
+        for(int i = 0; i < count + 1; ++i){
+	        FD_SET(fds[i], &watchset);
+        }
+        int max = fds[0];
+
+        for (int i = 0; i < 10; ++i) {
+            if (fds[i] > max) {
+                max = fds[i];
+            }
+        }
+
+        while (Check(fds, count, watchset)) {
+
+		    /* здесь копируем watchset, потому что select() обновляет его */
+		    inset = watchset;
+
+		    if (select(maxfd + 1, &inset, NULL, NULL, NULL) < 0) {
+	    		perror("select");
+    			return 1;
+		    }
+
+		    /* проверить, какой из файловых дескрипторов готов для чтения из него */
+		    for (int i = 0; i < count; i++)  {
+			    if (FD_ISSET(fds[i], &inset))  {
+                    // Clear the buffer
+                    memset(bufSocket, 0, 4096);
+                    // Wait for a message
+                    int bytesRecv = recv(fds[i], bufSocket, 4096, 0);
+
+	    			if (bytesRecv < 0){
+					    perror("read");
+				    	return 1;
+			    	}
+		    		else if (!bytesRecv) {
+    					/* этот канал закрыт, не пытаться читать из него снова */
+					    close(fds[i]);
+				    	FD_CLR(fds[i], &watchset);
+			    	}
+		    		else {                        
+                        if(bytesRecv == -1){
+                            cerr << "There was a connection issue" << endl;
+                            break;
+                        }
+                        if(bytesRecv == 0){
+                            cout << "The client disconnected" << endl;
+                            break;
+                        }
+
+                        // Display message
+                        cout << "Received: " << string(bufSocket, 0, bytesRecv) << endl;
+
+                        // Resend message
+                        send(fds[1], bufSocket, bytesRecv + 1, 0);
+				    }
+			    }
+		    }
+	    }
+    }
+
+    if(client_socket < 0){
+        cerr <<  "Accept failed" << endl;
+        return -5;
+    }
+
+    close(listening);
+
+    return 0;
+}
