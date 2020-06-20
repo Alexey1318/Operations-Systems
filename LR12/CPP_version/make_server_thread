@@ -1,4 +1,0 @@
-all:
-	clear
-	g++ TCP_Server_Thread.cpp -lpthread -o TCP_Server_Thread
-	./TCP_Server_Thread

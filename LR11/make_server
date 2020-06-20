@@ -1,4 +1,0 @@
-all: 
-	clear
-	g++ -o TCP_Server TCP_Server.cpp
-	./TCP_Server

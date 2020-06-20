@@ -15,7 +15,7 @@ void *Connection(void*socket_desc){
     // While receiving - display message, echo message
     char buf[4096];
     while(true){
-        
+
         // Clear the buffer
         memset(buf, 0, 4096);
 
@@ -46,7 +46,7 @@ void *Connection(void*socket_desc){
 }
 
 int main(int argc, const char** argv) {
-    
+
     int count = 1;
 
     // Create a socket
@@ -56,12 +56,12 @@ int main(int argc, const char** argv) {
         return -1;
     }
     cout << "Socket created" << endl;
-    
+
     // Bind tho socket to an IP/port
     sockaddr_in hint;
     hint.sin_family = AF_INET;
     hint.sin_port = htons(4321);
-    inet_pton(AF_INET, "0.0.0.0", &hint.sin_addr); 
+    inet_pton(AF_INET, "0.0.0.0", &hint.sin_addr);
 
     if(bind(listening, (sockaddr*)&hint, sizeof(hint)) == -1){
         cerr << "Can't bind to IP/port" << std::endl;
@@ -83,7 +83,7 @@ int main(int argc, const char** argv) {
 
     while((client_socket = accept(listening, (sockaddr*)&client, (socklen_t*)&c))){
 
-        cout << "Client #" << count << " connected" << endl; 
+        cout << "Client #" << count << " connected" << endl;
         ++count;
 
         if(pthread_create(&thread_id, NULL, Connection, (void*)&client_socket) < 0){
@@ -103,4 +103,3 @@ int main(int argc, const char** argv) {
 
     return 0;
 }
-

@@ -10,16 +10,16 @@
 using namespace std;
 
 int main(int argc, const char** argv) {
-    
+
     // Create socket
     int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if(sock == -1){       
-        cerr << "Can't create socket!" << endl; 
+    if(sock == -1){
+        cerr << "Can't create socket!" << endl;
         return -1;
     }
-    
+
     // Create a hint structure for the server we're connecting with
-    int port = 4321;
+    int port = 1234;
     string ipAddress = "127.0.0.1";
 
     sockaddr_in hint;
@@ -38,7 +38,7 @@ int main(int argc, const char** argv) {
     char buf[4096];
     string userInput;
 
-    do{  
+    do{
         // Enter lines of text
         cout << "> ";
         getline(cin, userInput);
@@ -49,16 +49,16 @@ int main(int argc, const char** argv) {
             cerr << "Couldn't send to server!" << endl;
             continue;
         }
-        
+
         // Wait for response
         memset(buf, 0, 4096);
         int bytesReceived = recv(sock, buf, 4096, 0);
         if(bytesReceived == -1){
             cerr << "There was an error getting response from server" << endl;
-        } else{        
+        } else{
             // Display response
             cout << "SERVER> " << string(buf, bytesReceived) << endl;
-        }       
+        }
 
     }while(true);
 
